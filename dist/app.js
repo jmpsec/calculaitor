@@ -2,7 +2,7 @@ import { hardware, models, runtimes, benchmarks, GiB } from './catalogue.js';
 import { calculate, validateHardware, rankHardware } from './calculator.js';
 
 const $ = id => document.getElementById(id);
-const state = { mode: 'model', hardwareId: 'mini-pro-48', modelId: 'qwen32', bits: 4, context: 4096, currency: 'USD', customPriceCurrency: 'USD', overrides: new Map(), comparison: [], detail: null };
+const state = { mode: 'model', hardwareId: 'mini-pro-48', modelId: 'qwen32', bits: 4, cacheBits: 16, context: 4096, currency: 'USD', customPriceCurrency: 'USD', overrides: new Map(), comparison: [], detail: null };
 const labels = { comfortable: 'Comfortable fit', tight: 'Tight fit', offload: 'CPU offload', insufficient: 'Doesn’t fit', unavailable: 'Unavailable' };
 const resident = result => ['comfortable', 'tight'].includes(result.status);
 const gib = bytes => `${(bytes / GiB).toLocaleString('en-US', { maximumFractionDigits: 1 })} GiB`;
@@ -39,7 +39,7 @@ function allHardware() {
 function currentHardware() { return allHardware().find(h => h.id === state.hardwareId); }
 function currentModel() { return models.find(m => m.id === state.modelId); }
 function settings(h) {
-  return { bits: state.bits, context: state.context, ...(h.id === 'custom' && number('custom-reserve') !== null ? { reserveBytes: number('custom-reserve') * GiB } : {}) };
+  return { bits: state.bits, cacheBits: state.cacheBits, context: state.context, ...(h.id === 'custom' && number('custom-reserve') !== null ? { reserveBytes: number('custom-reserve') * GiB } : {}) };
 }
 function estimate(h, m) { return calculate(h, m, settings(h), runtimes, benchmarks); }
 
@@ -47,6 +47,7 @@ function readControls({ clamp = false } = {}) {
   state.modelId = $('model-select').value;
   state.hardwareId = $('hardware-select').value;
   state.bits = Number($('bits').value);
+  state.cacheBits = Number($('cache-bits').value);
   state.context = number('context');
   state.currency = $('currency').value;
   const max = currentModel().maxContext;
@@ -54,7 +55,7 @@ function readControls({ clamp = false } = {}) {
   if (clamp && state.context > max) {
     state.context = max;
     $('context').value = String(max);
-    $('context-help').textContent = `Context reduced to this model’s ${max.toLocaleString()} token limit. Prompt + generated tokens · one user · FP16 cache`;
+    $('context-help').textContent = `Context reduced to this model’s ${max.toLocaleString()} token limit. Prompt + generated tokens · one user`;
   }
 }
 function updateControls() {
@@ -67,7 +68,7 @@ function updateControls() {
   $('mode-hardware').setAttribute('aria-pressed', String(isHardware));
   $('mode-description').textContent = isHardware ? 'Pick your machine. Explore its model options.' : 'Pick a model. Find its next machine.';
   $('model-label').textContent = isHardware ? 'Model for comparison' : 'Choose a model';
-  $('model-note').textContent = `${currentModel().purpose} · ${currentModel().activeParameters ? '30.5B stored / 3.3B active' : `${(currentModel().parameters / 1e9).toFixed(1)}B parameters`}`;
+  $('model-note').textContent = `${currentModel().purpose} · ${currentModel().activeParameters ? `${(currentModel().parameters / 1e9).toFixed(1)}B stored / ${(currentModel().activeParameters / 1e9).toFixed(1)}B active` : `${(currentModel().parameters / 1e9).toFixed(1)}B parameters`}`;
   $('context-value').textContent = Number.isFinite(state.context) ? `${state.context.toLocaleString()} tokens` : '';
   for (const button of document.querySelectorAll('[data-context]')) {
     button.disabled = Number(button.dataset.context) > currentModel().maxContext;
@@ -80,7 +81,7 @@ function stat(label, value, note, primary = false) {
 }
 function memoryBar(result) {
   if (!result.availableBytes) return null;
-  return el('div', { className: 'mini-bar', 'aria-hidden': 'true' }, ...[result.weightsBytes, result.cacheBytes, result.workspaceBytes].map(bytes => el('span', { style: `width:${Math.min(100, bytes / result.availableBytes * 100)}%;flex-shrink:0` })));
+  return el('div', { className: `mini-bar ${result.status}`, 'aria-hidden': 'true' }, ...[result.weightsBytes, result.cacheBytes, result.workspaceBytes].map(bytes => el('span', { style: `width:${Math.min(100, bytes / result.availableBytes * 100)}%;flex-shrink:0` })));
 }
 function memoryCell(h, m, r) {
   if (state.mode === 'hardware') return el('td', {}, el('span', { className: 'memory-value' }, r.requiredBytes ? gib(r.requiredBytes) : '—'), el('span', { className: 'memory-label' }, `total at ${state.bits}-bit`));
@@ -177,7 +178,7 @@ function renderComparison() {
     el('thead', {}, el('tr', {}, el('th', { scope: 'col' }, 'Same model. Same settings.'), ...records.map(({ h }) => el('th', { scope: 'col' }, h.name, action('Remove ×', 'remove-button', () => { state.comparison = state.comparison.filter(id => id !== h.id); render(); }, { 'aria-label': `Remove ${h.name} from comparison` }))))),
     el('tbody', {}, row('Complete-system price', records.map(({ h }) => `${price(h)} · ${h.currency}`)), row('Price basis', records.map(({ h }) => h.priceBasis)), row('Memory fit', records.map(({ r }) => badge(r))), row('Required / usable memory', records.map(({ r }) => r.requiredBytes ? `${gib(r.requiredBytes)} / ${gib(r.availableBytes)}` : 'Unavailable')), row('Measured performance', records.map(({ r }) => r.performance.benchmark ? `${r.performance.benchmark.tokensPerSecond} tok/s` : 'Unbenchmarked')), row('Bandwidth ceiling, not expected speed', records.map(({ r }) => r.performance.bandwidthCeiling ? `≤ ${Math.floor(r.performance.bandwidthCeiling)} tok/s` : 'Unavailable')), row('Compatible software', records.map(({ r }) => r.runtimeIds.map(id => runtimes.find(rt => rt.id === id).name).join(', ') || 'No documented runtime')))
   );
-  container.replaceChildren(el('p', { className: 'compare-meta' }, `${m.name} · ${state.bits}-bit · ${Number.isFinite(state.context) ? state.context.toLocaleString() : '—'} total context tokens · FP16 cache. Different currencies are not converted.`), el('div', { className: 'table-scroll', tabindex: '0', role: 'region', 'aria-label': 'Side-by-side hardware comparison' }, table));
+  container.replaceChildren(el('p', { className: 'compare-meta' }, `${m.name} · ${state.bits}-bit · ${Number.isFinite(state.context) ? state.context.toLocaleString() : '—'} total context tokens · ${state.cacheBits === 16 ? 'FP16' : state.cacheBits + '-bit'} cache. Different currencies are not converted.`), el('div', { className: 'table-scroll', tabindex: '0', role: 'region', 'aria-label': 'Side-by-side hardware comparison' }, table));
 }
 
 function openDetails(hardwareId, modelId) {
@@ -191,7 +192,7 @@ function openDetails(hardwareId, modelId) {
   for (const [label, bytes] of [['Model weights', r.weightsBytes], ['Context cache', r.cacheBytes], ['Runtime workspace', r.workspaceBytes], ['Usable execution memory', r.availableBytes]]) {
     breakdown.append(el('div', {}, el('dt', {}, label), el('dd', {}, r.requiredBytes ? gib(bytes) : '—')));
   }
-  content.append(breakdown, el('p', {}, 'Weights use the published rounded GGUF size. Runtime workspace and OS reserves are planning allowances. Verify actual runtime allocation before purchasing.'), el('p', {}, `Model license: ${m.license}. Context limit: ${m.maxContext.toLocaleString()} tokens without extensions.`));
+  content.append(breakdown, el('p', {}, `Weights use ${r.weightsEstimated ? 'an estimate (parameters × bits ÷ 8 + 10%); no matching GGUF size is recorded' : r.weightsRounded ? 'the published rounded GGUF size' : 'the summed GGUF file size'}. Runtime workspace and OS reserves are planning allowances. Verify actual runtime allocation before purchasing.`), el('p', {}, `Model license: ${m.license}. Context limit: ${m.maxContext.toLocaleString()} tokens without extensions.`));
   if (m.activeParameters) content.append(el('p', {}, 'Mixture of experts: the entire stored model must fit; its active-parameter count does not determine storage memory.'));
   if (h.note) content.append(el('p', {}, h.note));
   content.append(el('h3', {}, 'Performance evidence'), el('p', {}, r.performance.benchmark ? `${r.performance.benchmark.tokensPerSecond} tokens/second measured. ${r.performance.benchmark.conditions}` : 'No matching measured benchmark is bundled. Memory fit alone does not establish responsiveness.'));
@@ -232,7 +233,7 @@ $('model-select').replaceChildren(...models.map(m => el('option', { value: m.id 
 $('hardware-select').value = state.hardwareId;
 $('model-select').value = state.modelId;
 for (const mode of ['hardware', 'model']) $('mode-' + mode).addEventListener('click', () => { state.mode = mode; render(); });
-for (const id of ['hardware-select', 'model-select', 'bits', 'currency', 'compatible-only', 'custom-platform']) $(id).addEventListener('change', () => { readControls({ clamp: id === 'model-select' }); render(); });
+for (const id of ['hardware-select', 'model-select', 'bits', 'cache-bits', 'currency', 'compatible-only', 'custom-platform']) $(id).addEventListener('change', () => { readControls({ clamp: id === 'model-select' }); render(); });
 for (const id of ['context', 'custom-ram', 'custom-vram', 'custom-bandwidth', 'custom-reserve', 'custom-price']) $(id).addEventListener('input', () => { if (id === 'custom-price') state.customPriceCurrency = state.currency; readControls(); render(); });
 for (const button of document.querySelectorAll('[data-context]')) button.addEventListener('click', () => { $('context').value = button.dataset.context; readControls(); render(); });
 $('reset-prices').addEventListener('click', () => { state.overrides.clear(); render(); $('result-summary').textContent += ' · Edited prices reset.'; });

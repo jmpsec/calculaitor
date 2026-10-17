@@ -55,7 +55,9 @@ test('hardware covers premium through minimum viable without pretending a GPU is
 
 test('model cache metadata and quantization sources are usable', () => {
   for (const m of models) {
-    assert.ok(m.parameters > 0 && m.layers > 0 && m.kvHeads > 0 && m.headDim > 0, m.id);
+    assert.ok(m.parameters > 0 && m.layers > 0, m.id);
+    if (m.cacheArchitecture === 'gqa') assert.ok(m.kvHeads > 0 && m.headDim > 0, m.id);
+    else assert.ok(m.cacheArchitecture === 'mla' && m.kvLoraRank > 0 && m.ropeHeadDim > 0, m.id);
     assert.ok(m.maxContext >= 4096);
     for (const bits of [4, 8]) {
       const weight = m.weightsByBits[bits];
@@ -64,4 +66,18 @@ test('model cache metadata and quantization sources are usable', () => {
     }
   }
   assert.ok(models.some(m => m.activeParameters && m.parameters > m.activeParameters));
+});
+
+test('big models reach the largest presets: 235B and DeepSeek R1 Q4 fit 512 GiB, Q8s do not, 405B is estimated', () => {
+  const studio = hardware.find(h => h.id === 'studio-ultra-512');
+  const run = (id, bits) => calculate(studio, models.find(m => m.id === id), { bits, context: 32768 }, runtimes);
+  assert.equal(run('qwen235', 4).status, 'comfortable');
+  assert.equal(run('qwen480', 4).status, 'comfortable');
+  assert.equal(run('qwen480', 8).status, 'insufficient');
+  const r1 = run('ds-r1', 4);
+  assert.equal(r1.status, 'tight');
+  assert.equal(r1.cacheBytes, 61 * 576 * 32768 * 2);
+  assert.equal(run('ds-r1', 8).status, 'insufficient');
+  const llama405 = run('llama405', 4);
+  assert.ok(llama405.weightsEstimated && llama405.weightsBytes > 200e9);
 });

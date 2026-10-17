@@ -58,7 +58,7 @@ test('graphics allocation cap limits shared memory without double subtraction', 
 });
 test('unknown runtime or cache architecture gives an unavailable result', () => {
   assert.equal(calc(hw, model, settings, []).status, 'unavailable');
-  assert.equal(calc(hw, { ...model, cacheArchitecture: 'mla' }).status, 'unavailable');
+  assert.equal(calc(hw, { ...model, cacheArchitecture: 'sliding' }).status, 'unavailable');
   assert.equal(calc(hw, model, settings, [{ ...rt[0], platforms: ['mac'] }]).status, 'unavailable');
 });
 test('invalid inputs never escape as NaN results', () => {
@@ -91,4 +91,17 @@ test('rank keeps currencies separate, unknown price last, and an explicit zero v
   const list = [{ ...hw, id: 'unknown', price: null }, { ...hw, id: 'eur', price: 1, currency: 'EUR' }, { ...hw, id: 'first' }, { ...hw, id: 'free', price: 0 }, { ...hw, id: 'second' }];
   assert.deepEqual(rankHardware(list, 'USD').map(h => h.id), ['free', 'first', 'second', 'unknown']);
   assert.equal(list[0].id, 'unknown');
+});
+
+test('quantized KV cache shrinks cache; invalid precision rejected', () => {
+  const full = calc().cacheBytes;
+  assert.equal(calc(hw, model, { ...settings, cacheBits: 8 }).cacheBytes, full * 34 / 64);
+  assert.equal(calc(hw, model, { ...settings, cacheBits: 4 }).cacheBytes, full * 18 / 64);
+  assert.equal(calc(hw, model, { ...settings, cacheBits: 5 }).status, 'unavailable');
+});
+
+test('MLA cache stores latent + RoPE key per layer; missing MLA metadata is rejected', () => {
+  const mla = { ...model, cacheArchitecture: 'mla', kvLoraRank: 512, ropeHeadDim: 64 };
+  assert.equal(calc(hw, mla).cacheBytes, 2 * 576 * 4096 * 2);
+  assert.equal(calc(hw, { ...mla, kvLoraRank: undefined }).status, 'unavailable');
 });

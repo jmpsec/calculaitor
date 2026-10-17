@@ -1,6 +1,14 @@
 const GiB = 1024 ** 3;
 const positive = value => Number.isFinite(value) && value > 0;
 const nonnegative = value => Number.isFinite(value) && value >= 0;
+// bytes per cache element; q8_0/q4_0 include llama.cpp block scales
+export const CACHE_BYTES = { 16: 2, 8: 34 / 32, 4: 18 / 32 };
+// Cache elements stored per token per layer. GQA keeps separate K and V heads; MLA (DeepSeek) keeps one
+// compressed latent plus the decoupled RoPE key, as llama.cpp does when MLA is enabled.
+const cacheElementsPerToken = model => ({
+  gqa: 2 * model.kvHeads * model.headDim,
+  mla: model.kvLoraRank + model.ropeHeadDim,
+})[model.cacheArchitecture];
 const hostReserve = bytes => Math.max(4 * GiB, bytes * 0.15);
 
 export function validateHardware(hardware) {
@@ -19,9 +27,12 @@ export function calculate(hardware, model, settings, runtimes, benchmarks = []) 
   const errors = validateHardware(hardware);
   const artifact = model.weightsByBits?.[settings.bits];
   if (!artifact || ![4, 8].includes(settings.bits)) errors.push('Choose a documented quantization.');
+  const cacheBits = settings.cacheBits ?? 16;
+  if (!CACHE_BYTES[cacheBits]) errors.push('Choose a documented cache precision.');
   if (!Number.isInteger(settings.context) || settings.context < 1 || settings.context > model.maxContext) errors.push(`Context must be a whole number from 1 to ${model.maxContext}.`);
-  if (model.cacheArchitecture !== 'gqa') errors.push('Memory estimation is unavailable for this cache architecture.');
-  if (![model.parameters, model.layers, model.kvHeads, model.headDim, model.maxContext].every(positive)) errors.push('Model architecture metadata is incomplete.');
+  const perToken = cacheElementsPerToken(model);
+  if (perToken === undefined) errors.push('Memory estimation is unavailable for this cache architecture.');
+  else if (![model.parameters, model.layers, model.maxContext, perToken].every(positive)) errors.push('Model architecture metadata is incomplete.');
   const pool = hardware.topology === 'dedicated' ? hardware.vramBytes : hardware.ramBytes;
   if (settings.reserveBytes != null && (!nonnegative(settings.reserveBytes) || settings.reserveBytes > pool)) errors.push('Reserved memory must be between zero and the execution memory capacity.');
   if (artifact?.bytes != null && !positive(artifact.bytes)) errors.push('Artifact size is invalid.');
@@ -32,7 +43,7 @@ export function calculate(hardware, model, settings, runtimes, benchmarks = []) 
   result.weightsBytes = artifact.bytes ?? model.parameters * settings.bits / 8 * 1.1;
   result.weightsEstimated = artifact.bytes == null;
   result.weightsRounded = artifact.rounded === true;
-  result.cacheBytes = 2 * model.layers * model.kvHeads * model.headDim * settings.context * 2;
+  result.cacheBytes = model.layers * perToken * settings.context * CACHE_BYTES[cacheBits];
   result.workspaceBytes = Math.max(GiB, result.weightsBytes * 0.05);
   result.requiredBytes = result.weightsBytes + result.cacheBytes + result.workspaceBytes;
   const reserve = settings.reserveBytes ?? (hardware.topology === 'dedicated' ? Math.max(GiB, pool * 0.05) : hostReserve(pool));

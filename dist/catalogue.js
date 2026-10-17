@@ -20,6 +20,7 @@ function machine(id, name, platform, topology, ram, vram, bandwidthGBs, price, p
 
 // Prices labeled "planning budget" are editable examples, not retailer quotes.
 export const hardware = [
+  machine('studio-ultra-512', 'Mac Studio · M3 Ultra', 'mac', 'unified', 512, 0, 819, 9500, 'Illustrative planning budget', [appleStudio], { tier: 'High capacity', detail: '512 GiB unified · 80-core GPU · 1 TB SSD', availability: 'Historical configuration; verify used/reseller availability' }),
   machine('studio-ultra-256', 'Mac Studio · M3 Ultra', 'mac', 'unified', 256, 0, 819, 6500, 'Illustrative planning budget', [appleStudio], { tier: 'High capacity', detail: '256 GiB unified · 1 TB SSD', availability: 'Historical configuration; verify used/reseller availability' }),
   machine('studio-ultra-96', 'Mac Studio · M3 Ultra', 'mac', 'unified', 96, 0, 819, 3999, 'Historical starting MSRP (2025)', [appleStudio], { tier: 'Workstation', detail: '96 GiB unified · 1 TB SSD', availability: 'Historical 2025 configuration' }),
   machine('spark-128', 'NVIDIA DGX Spark', 'spark', 'unified', 128, 0, 273, 4699, 'Announced MSRP (Feb 2026); verify current price', [spark, 'https://forums.developer.nvidia.com/t/2-23-2026-price-change-announcement/361713'], { tier: 'AI workstation', detail: 'GB10 · 128 GiB unified · 4 TB SSD', setupUrl: 'https://build.nvidia.com/spark/llama-cpp/overview', note: 'Use the NVIDIA ARM64 / GB10 build instructions. Unified memory is shared with the OS.' }),
@@ -54,12 +55,15 @@ export const hardware = [
 ];
 
 function model(id, repo, parameters, layers, kvHeads, maxContext, q4GB, q8GB, extra = {}) {
-  const modelUrl = `https://huggingface.co/Qwen/${repo}`;
-  const artifactUrl = `${modelUrl}-GGUF`;
+  const { org = 'Qwen', gguf, exact = false, ...rest } = extra;
+  const modelUrl = `https://huggingface.co/${org}/${repo}`;
+  const artifactUrl = gguf ?? `${modelUrl}-GGUF`;
+  // Exact sizes come from summed GGUF file bytes; published decimal-GB sizes are rounded, so preserve that uncertainty in the UI.
+  // A null size falls back to the nominal-bit estimate in calculator.js.
+  const weight = (gb, quant) => ({ bytes: gb == null ? null : Math.round(gb * 1e9), source: artifactUrl, rounded: gb != null && !exact, quant });
   return { id, name: repo.replace('-Instruct', ''), parameters: parameters * 1e9, layers, kvHeads, headDim: 128, maxContext, cacheArchitecture: 'gqa', modelUrl, artifactUrl,
     sources: [`${modelUrl}/blob/main/config.json`, artifactUrl], verifiedAt, runtimeIds: ['llama', 'lmstudio', 'ollama'],
-    // Published decimal-GB sizes are rounded; preserve that uncertainty in the UI.
-    weightsByBits: { 4: { bytes: q4GB * 1e9, source: artifactUrl, rounded: true, quant: 'Q4_K_M' }, 8: { bytes: q8GB * 1e9, source: artifactUrl, rounded: true, quant: 'Q8_0' } }, ...extra };
+    weightsByBits: { 4: weight(q4GB, 'Q4_K_M'), 8: weight(q8GB, 'Q8_0') }, ...rest };
 }
 
 export const models = [
@@ -71,6 +75,16 @@ export const models = [
   model('qwen30', 'Qwen3-30B-A3B', 30.5, 48, 4, 40960, 18.6, 32.5, { activeParameters: 3.3e9, purpose: 'Mixture of experts', license: 'Apache 2.0' }),
   model('qwen32', 'Qwen2.5-32B-Instruct', 32.5, 64, 8, 32768, 19.9, 34.8, { purpose: 'Larger dense model', license: 'Apache 2.0' }),
   model('qwen72', 'Qwen2.5-72B-Instruct', 72.7, 80, 8, 32768, 44.0, 77.5, { purpose: 'High-memory inference', license: 'Qwen license — check use terms' }),
+  model('qwen3-32', 'Qwen3-32B', 32.8, 64, 8, 40960, 19.762149024, 34.817718912, { exact: true, purpose: 'Dense reasoning model', license: 'Apache 2.0' }),
+  model('llama70', 'Llama-3.3-70B-Instruct', 70.6, 80, 8, 131072, 42.520398816, 74.975055008, { org: 'meta-llama', gguf: 'https://huggingface.co/bartowski/Llama-3.3-70B-Instruct-GGUF', exact: true, purpose: 'Long-context 70B dense', license: 'Llama 3.3 Community License — check use terms' }),
+  model('mistral-large', 'Mistral-Large-Instruct-2411', 122.6, 88, 8, 131072, 73.219623424, 130.2803768, { org: 'mistralai', gguf: 'https://huggingface.co/bartowski/Mistral-Large-Instruct-2411-GGUF', exact: true, purpose: '123B dense flagship', license: 'Mistral Research License — non-commercial' }),
+  model('qwen235', 'Qwen3-235B-A22B', 235.1, 94, 4, 40960, 142.154074176, 249.940105792, { exact: true, activeParameters: 22e9, purpose: 'Large mixture of experts', license: 'Apache 2.0' }),
+  model('llama405', 'Llama-3.1-405B-Instruct', 405.9, 126, 8, 131072, null, null, { org: 'meta-llama', gguf: 'https://huggingface.co/meta-llama/Llama-3.1-405B-Instruct', purpose: 'Frontier-size dense', license: 'Llama 3.1 Community License — check use terms' }),
+  model('qwen480', 'Qwen3-Coder-480B-A35B-Instruct', 480.2, 62, 8, 262144, 290.838966112, 510.351878816, { gguf: 'https://huggingface.co/bartowski/Qwen_Qwen3-Coder-480B-A35B-Instruct-GGUF', exact: true, activeParameters: 35e9, purpose: 'Largest coding MoE', license: 'Apache 2.0' }),
+  model('ds-distill32', 'DeepSeek-R1-Distill-Qwen-32B', 32.8, 64, 8, 131072, 19.85133584, 34.820884352, { org: 'deepseek-ai', gguf: 'https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF', exact: true, purpose: 'R1 reasoning distilled to 32B', license: 'MIT' }),
+  // DeepSeek V3-family: MLA cache. 671B excludes the 14B multi-token-prediction module that GGUF conversions drop.
+  ...[['ds-v31', 'DeepSeek-V3.1', 409.227727296, 713.28651984, 'Hybrid thinking MoE'], ['ds-r1', 'DeepSeek-R1-0528', 409.227727616, 713.286520416, 'Reasoning MoE']].map(([id, repo, q4, q8, purpose]) =>
+    model(id, repo, 671, 61, null, 163840, q4, q8, { org: 'deepseek-ai', gguf: `https://huggingface.co/bartowski/deepseek-ai_${repo}-GGUF`, exact: true, cacheArchitecture: 'mla', headDim: null, kvLoraRank: 512, ropeHeadDim: 64, activeParameters: 37e9, purpose, license: 'MIT' })),
 ];
 
 export const benchmarks = [];
