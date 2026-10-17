@@ -54,37 +54,50 @@ export const hardware = [
   machine('cpu-8', '8 GiB CPU-only PC', 'cpu', 'cpu', 8, 0, null, 120, 'Illustrative used-system budget', ['https://github.com/ggml-org/llama.cpp'], { tier: 'Minimum viable', condition: 'used', detail: 'Generic x64 AVX2 CPU · no GPU', availability: 'Generic planning configuration', note: 'For small models and experimentation. Memory fit does not guarantee interactive speed.' }),
 ];
 
-function model(id, repo, parameters, layers, kvHeads, maxContext, q4GB, q8GB, extra = {}) {
-  const { org = 'Qwen', gguf, exact = false, ...rest } = extra;
+// Cache layer groups (see calculator.js). Gemma 4 global layers share K and V, but both are counted to stay conservative.
+const gqa = (layers, kvHeads, headDim, window) => ({ layers, perToken: 2 * kvHeads * headDim, ...(window ? { window } : {}) });
+const mla = (layers, rank, rope) => ({ layers, perToken: rank + rope });
+// Gated DeltaNet layers: FP32 recurrent state (value heads × key dim × value dim) plus the short-convolution state.
+const deltaNet = (layers, keyHeads, valueHeads, kernel = 4, dim = 128) => layers * (valueHeads * dim * dim + (kernel - 1) * (2 * keyHeads + valueHeads) * dim) * 4;
+
+function model(id, repo, parameters, cache, maxContext, q4GB, q8GB, extra = {}) {
+  const { org = 'Qwen', gguf, ...rest } = extra;
   const modelUrl = `https://huggingface.co/${org}/${repo}`;
   const artifactUrl = gguf ?? `${modelUrl}-GGUF`;
-  // Exact sizes come from summed GGUF file bytes; published decimal-GB sizes are rounded, so preserve that uncertainty in the UI.
-  // A null size falls back to the nominal-bit estimate in calculator.js.
-  const weight = (gb, quant) => ({ bytes: gb == null ? null : Math.round(gb * 1e9), source: artifactUrl, rounded: gb != null && !exact, quant });
-  return { id, name: repo.replace('-Instruct', ''), parameters: parameters * 1e9, layers, kvHeads, headDim: 128, maxContext, cacheArchitecture: 'gqa', modelUrl, artifactUrl,
+  // Sizes are summed GGUF file bytes; a null size falls back to the nominal-bit estimate in calculator.js.
+  const weight = (gb, quant) => ({ bytes: gb == null ? null : Math.round(gb * 1e9), source: artifactUrl, quant });
+  return { id, name: repo, parameters: parameters * 1e9, cache, maxContext, modelUrl, artifactUrl,
     sources: [`${modelUrl}/blob/main/config.json`, artifactUrl], verifiedAt, runtimeIds: ['llama', 'lmstudio', 'ollama'],
     weightsByBits: { 4: weight(q4GB, 'Q4_K_M'), 8: weight(q8GB, 'Q8_0') }, ...rest };
 }
 
+const lms = repo => `https://huggingface.co/lmstudio-community/${repo}-GGUF`;
+const unsloth = repo => `https://huggingface.co/unsloth/${repo}-GGUF`;
+const bartowski = repo => `https://huggingface.co/bartowski/${repo}-GGUF`;
+const K = 1024;
+
+// Parameter counts are Hugging Face safetensors totals, so they include vision and multi-token-prediction weights.
 export const models = [
-  model('qwen15', 'Qwen2.5-1.5B-Instruct', 1.54, 28, 2, 32768, 1.12, 1.89, { purpose: 'Small experiments', license: 'Apache 2.0' }),
-  model('qwen3', 'Qwen2.5-3B-Instruct', 3.09, 36, 2, 32768, 2.10, 3.62, { purpose: 'Lightweight assistant', license: 'Qwen Research — check use terms' }),
-  model('qwen7', 'Qwen2.5-7B-Instruct', 7.61, 28, 4, 32768, 4.68, 8.10, { purpose: 'General conversation', license: 'Apache 2.0' }),
-  model('qwen8', 'Qwen3-8B', 8.2, 36, 8, 40960, 5.03, 8.71, { purpose: 'Reasoning & general use', license: 'Apache 2.0' }),
-  model('qwen14', 'Qwen2.5-14B-Instruct', 14.7, 48, 8, 32768, 8.99, 15.7, { purpose: 'More capable assistant', license: 'Apache 2.0' }),
-  model('qwen30', 'Qwen3-30B-A3B', 30.5, 48, 4, 40960, 18.6, 32.5, { activeParameters: 3.3e9, purpose: 'Mixture of experts', license: 'Apache 2.0' }),
-  model('qwen32', 'Qwen2.5-32B-Instruct', 32.5, 64, 8, 32768, 19.9, 34.8, { purpose: 'Larger dense model', license: 'Apache 2.0' }),
-  model('qwen72', 'Qwen2.5-72B-Instruct', 72.7, 80, 8, 32768, 44.0, 77.5, { purpose: 'High-memory inference', license: 'Qwen license — check use terms' }),
-  model('qwen3-32', 'Qwen3-32B', 32.8, 64, 8, 40960, 19.762149024, 34.817718912, { exact: true, purpose: 'Dense reasoning model', license: 'Apache 2.0' }),
-  model('llama70', 'Llama-3.3-70B-Instruct', 70.6, 80, 8, 131072, 42.520398816, 74.975055008, { org: 'meta-llama', gguf: 'https://huggingface.co/bartowski/Llama-3.3-70B-Instruct-GGUF', exact: true, purpose: 'Long-context 70B dense', license: 'Llama 3.3 Community License — check use terms' }),
-  model('mistral-large', 'Mistral-Large-Instruct-2411', 122.6, 88, 8, 131072, 73.219623424, 130.2803768, { org: 'mistralai', gguf: 'https://huggingface.co/bartowski/Mistral-Large-Instruct-2411-GGUF', exact: true, purpose: '123B dense flagship', license: 'Mistral Research License — non-commercial' }),
-  model('qwen235', 'Qwen3-235B-A22B', 235.1, 94, 4, 40960, 142.154074176, 249.940105792, { exact: true, activeParameters: 22e9, purpose: 'Large mixture of experts', license: 'Apache 2.0' }),
-  model('llama405', 'Llama-3.1-405B-Instruct', 405.9, 126, 8, 131072, null, null, { org: 'meta-llama', gguf: 'https://huggingface.co/meta-llama/Llama-3.1-405B-Instruct', purpose: 'Frontier-size dense', license: 'Llama 3.1 Community License — check use terms' }),
-  model('qwen480', 'Qwen3-Coder-480B-A35B-Instruct', 480.2, 62, 8, 262144, 290.838966112, 510.351878816, { gguf: 'https://huggingface.co/bartowski/Qwen_Qwen3-Coder-480B-A35B-Instruct-GGUF', exact: true, activeParameters: 35e9, purpose: 'Largest coding MoE', license: 'Apache 2.0' }),
-  model('ds-distill32', 'DeepSeek-R1-Distill-Qwen-32B', 32.8, 64, 8, 131072, 19.85133584, 34.820884352, { org: 'deepseek-ai', gguf: 'https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF', exact: true, purpose: 'R1 reasoning distilled to 32B', license: 'MIT' }),
-  // DeepSeek V3-family: MLA cache. 671B excludes the 14B multi-token-prediction module that GGUF conversions drop.
-  ...[['ds-v31', 'DeepSeek-V3.1', 409.227727296, 713.28651984, 'Hybrid thinking MoE'], ['ds-r1', 'DeepSeek-R1-0528', 409.227727616, 713.286520416, 'Reasoning MoE']].map(([id, repo, q4, q8, purpose]) =>
-    model(id, repo, 671, 61, null, 163840, q4, q8, { org: 'deepseek-ai', gguf: `https://huggingface.co/bartowski/deepseek-ai_${repo}-GGUF`, exact: true, cacheArchitecture: 'mla', headDim: null, kvLoraRank: 512, ropeHeadDim: 64, activeParameters: 37e9, purpose, license: 'MIT' })),
+  model('qwen35-4b', 'Qwen3.5-4B', 4.66, [gqa(8, 4, 256)], 256 * K, 2.707513696, 4.482402656, { gguf: lms('Qwen3.5-4B'), stateBytes: deltaNet(24, 16, 32), purpose: 'Small hybrid-attention model', license: 'Apache 2.0' }),
+  model('qwen35-9b', 'Qwen3.5-9B', 9.65, [gqa(8, 4, 256)], 256 * K, 5.627044256, 9.527501216, { gguf: lms('Qwen3.5-9B'), stateBytes: deltaNet(24, 16, 32), purpose: 'Everyday assistant', license: 'Apache 2.0' }),
+  model('gemma4-12b', 'gemma-4-12B-it', 11.96, [gqa(40, 8, 256, 1024), gqa(8, 1, 512)], 256 * K, 7.12186144, 13.134756928, { org: 'google', name: 'Gemma 4 12B', gguf: unsloth('gemma-4-12b-it'), purpose: 'Compact multimodal', license: 'Apache 2.0' }),
+  model('ministral3-14b', 'Ministral-3-14B-Instruct-2512', 13.95, [gqa(40, 8, 128)], 256 * K, 8.239593024, 14.359836224, { org: 'mistralai', name: 'Ministral 3 14B', gguf: 'https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512-GGUF', purpose: 'Dense mid-size', license: 'Apache 2.0' }),
+  model('gptoss-20b', 'gpt-oss-20b', 20.91, [gqa(12, 8, 64, 128), gqa(12, 8, 64)], 128 * K, 11.624759488, 12.109567168, { org: 'openai', gguf: unsloth('gpt-oss-20b'), activeParameters: 3.6e9, purpose: 'MXFP4-native reasoning MoE', license: 'Apache 2.0' }),
+  model('gemma4-26b', 'gemma-4-26B-A4B-it', 25.81, [gqa(25, 8, 256, 1024), gqa(5, 2, 512)], 256 * K, 16.947541728, 27.321628544, { org: 'google', name: 'Gemma 4 26B-A4B', gguf: unsloth('gemma-4-26B-A4B-it'), activeParameters: 4e9, purpose: 'Fast multimodal MoE', license: 'Apache 2.0' }),
+  model('qwen38-27b', 'Qwen3.8-27B', 27.78, [gqa(16, 4, 256)], 256 * K, 16.810714336, 29.047084256, { gguf: lms('Qwen3.8-27B'), stateBytes: deltaNet(48, 16, 48), purpose: 'Latest dense Qwen', license: 'Apache 2.0' }),
+  model('gemma4-31b', 'gemma-4-31B-it', 31.27, [gqa(50, 16, 256, 1024), gqa(10, 4, 512)], 256 * K, 18.32373344, 33.150364736, { org: 'google', name: 'Gemma 4 31B', gguf: unsloth('gemma-4-31B-it'), purpose: 'Largest dense Gemma', license: 'Apache 2.0' }),
+  model('qwen36-35b', 'Qwen3.6-35B-A3B', 35.95, [gqa(10, 2, 256)], 256 * K, 21.166757728, 36.903139168, { gguf: lms('Qwen3.6-35B-A3B'), stateBytes: deltaNet(30, 16, 32), activeParameters: 3e9, purpose: 'Fast hybrid MoE', license: 'Apache 2.0' }),
+  model('gptoss-120b', 'gpt-oss-120b', 116.83, [gqa(18, 8, 64, 128), gqa(18, 8, 64)], 128 * K, 62.841713344, 63.387346368, { org: 'openai', gguf: bartowski('openai_gpt-oss-120b'), activeParameters: 5.1e9, purpose: 'MXFP4-native large MoE', license: 'Apache 2.0' }),
+  model('qwen35-122b', 'Qwen3.5-122B-A10B', 125.09, [gqa(12, 2, 256)], 256 * K, 74.208240192, 129.87193424, { gguf: lms('Qwen3.5-122B-A10B'), stateBytes: deltaNet(36, 16, 64), activeParameters: 10e9, purpose: 'Workstation-class MoE', license: 'Apache 2.0' }),
+  model('mistral-medium-35', 'Mistral-Medium-3.5-128B', 127.7, [gqa(88, 8, 128)], 256 * K, 78.409343008, 132.85442384, { org: 'mistralai', name: 'Mistral Medium 3.5 128B', gguf: bartowski('mistralai_Mistral-Medium-3.5-128B'), purpose: 'Large dense model', license: 'Modified MIT — revenue limits apply' }),
+  // 125B core + 51B n-gram embedding + 4B MTP, 6B active (model card).
+  model('qwen38-flash-next', 'Qwen3.8-Flash-Next', 180, [gqa(12, 2, 256)], 256 * K, 119.15072224, 188.224949792, { gguf: lms('Qwen3.8-Flash-Next'), stateBytes: deltaNet(36, 16, 48), activeParameters: 6e9, purpose: 'Sparse hybrid MoE', license: 'Qwen Community License — check use terms' }),
+  model('qwen35-397b', 'Qwen3.5-397B-A17B', 403.4, [gqa(15, 2, 256)], 256 * K, 240.590681792, 421.507365024, { gguf: lms('Qwen3.5-397B-A17B'), stateBytes: deltaNet(45, 16, 64), activeParameters: 17e9, purpose: 'Flagship open Qwen', license: 'Apache 2.0' }),
+  // DeepSeek sparse attention adds a 128-dim indexer key per token on top of the MLA latent.
+  model('dsv32', 'DeepSeek-V3.2', 685.4, [mla(61, 512, 64), { layers: 61, perToken: 128 }], 160 * K, 405.39802432, 713.286531616, { org: 'deepseek-ai', gguf: unsloth('DeepSeek-V3.2'), activeParameters: 37e9, purpose: 'Sparse-attention MoE', license: 'MIT' }),
+  // No Q4_K_M GGUF is published; 4-bit uses the nominal estimate. 40B active is the GLM-5 family figure.
+  model('glm53', 'GLM-5.3', 753.3, [mla(78, 512, 64), { layers: 21, perToken: 128 }], 1024 * K, null, 801.357677216, { org: 'zai-org', gguf: unsloth('GLM-5.3'), activeParameters: 40e9, purpose: 'Frontier coding MoE', license: 'GLM-5.3 license — check use terms' }),
+  model('kimi-k2-thinking', 'Kimi-K2-Thinking', 1026.4, [mla(61, 512, 64)], 256 * K, 624.017304704, 1091.053888384, { org: 'moonshotai', gguf: bartowski('moonshotai_Kimi-K2-Thinking'), activeParameters: 32e9, purpose: 'Trillion-parameter MoE', license: 'Modified MIT — check use terms' }),
 ];
 
 export const benchmarks = [];

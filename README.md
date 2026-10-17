@@ -41,7 +41,7 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 | Dedicated NVIDIA GPUs | Complete desktop budgets with RTX 5090, RTX 4060 Ti, and used RTX 3060 |
 | Minimum viable setups | CPU-only PCs with 8 or 16 GiB RAM |
 
-The model catalogue runs from Qwen2.5-1.5B to DeepSeek-V3.1 and R1-0528 (671B), including Llama 3.3 70B, Mistral Large 2411 (123B), Llama 3.1 405B, DeepSeek-R1-Distill-Qwen-32B, and the Qwen3-30B, 235B and 480B mixture-of-experts models. It is a representative planning sample; model quality and benchmark rankings are outside its scope.
+The model catalogue covers current open-weight releases from 4B to 1T: Qwen3.5, 3.6 and 3.8 (including Qwen3.8-Flash-Next and Qwen3.5-397B-A17B), Gemma 4, gpt-oss, Ministral 3, Mistral Medium 3.5, DeepSeek-V3.2, GLM-5.3, and Kimi K2 Thinking. It is a representative planning sample; model quality and benchmark rankings are outside its scope.
 
 Software guidance covers **llama.cpp**, **LM Studio**, and **Ollama**, with **MLX-LM** documented as an alternative format on Apple silicon. Each result narrows the guidance to its supported platform.
 
@@ -69,33 +69,35 @@ Run the calculation and catalogue checks with `npm test`.
 
 ## What the estimates mean
 
-Required memory includes model weights, a full-context KV cache (FP16 by default, optionally q8_0 or q4_0) for one sequence, and runtime workspace. Calculations use bytes and display GiB (1,073,741,824 bytes). Published artifact sizes use decimal GB, and are labeled as rounded. A model name’s nominal parameter count is not its artifact size.
+Required memory includes model weights, a full-context KV cache (FP16 by default, optionally q8_0 or q4_0) for one sequence, and runtime workspace. Calculations use bytes and display GiB (1,073,741,824 bytes). Artifact sizes are summed GGUF file bytes. A model name’s nominal parameter count is not its artifact size.
 
-For conventional grouped-query attention:
+Each model lists its cache as groups of layers, so mixed architectures add up correctly:
 
 ```text
-KV cache = 2 × layers × KV heads × head dimension × total context tokens × bytes per element
-           (FP16 = 2, q8_0 = 34/32, q4_0 = 18/32, including llama.cpp block scales)
+Cache = Σ groups: layers × elements per token × min(context, window) × bytes per element
+        + fixed linear-attention state (FP32, not affected by cache precision)
+Bytes per element: FP16 = 2, q8_0 = 34/32, q4_0 = 18/32 (including llama.cpp block scales)
 Workspace = max(1 GiB, 5% of weights)
 CPU / unified-memory OS reserve = max(4 GiB, 15% of RAM)
 Dedicated GPU reserve = max(1 GiB, 5% of VRAM)
 ```
 
-DeepSeek V3-family models use multi-head latent attention (MLA). llama.cpp caches one compressed latent plus the RoPE key per layer instead of per-head K and V:
+Elements per token depend on the attention type:
 
-```text
-MLA cache = layers × (KV LoRA rank + RoPE head dimension) × total context tokens × bytes per element
-```
+- **Grouped-query attention** (Ministral, Mistral Medium, full-attention layers elsewhere): 2 × KV heads × head dimension.
+- **Sliding window** (Gemma 4, gpt-oss): the same, but capped at the window (1,024 or 128 tokens). Only the global layers grow with context. Gemma 4’s global layers share K and V; both are still counted.
+- **Hybrid linear attention** (Qwen3.5 and later): only one layer in four keeps a KV cache. Gated DeltaNet layers hold a fixed recurrent and convolution state.
+- **Multi-head latent attention** (DeepSeek, GLM, Kimi): KV LoRA rank + RoPE head dimension, the compressed latent llama.cpp caches. DeepSeek sparse attention adds a 128-element indexer key on its indexer layers.
 
 A comfortable fit leaves at least 10% of usable execution memory free. A tight fit has less headroom. Unified RAM is counted once. The Ryzen AI Max preset also respects its documented 96 GiB graphics-allocation cap.
 
-Dedicated-GPU models first need to fit in VRAM. “CPU offload” requires a documented partial-offload runtime and a conservative full model/cache/workspace fit in usable host RAM. It does not predict the exact layer split or speed. Disk swapping is not treated as sufficient memory. MoE models use all stored weights, not just active parameters. Cache architectures other than GQA and MLA return an unavailable estimate.
+Dedicated-GPU models first need to fit in VRAM. “CPU offload” requires a documented partial-offload runtime and a conservative full model/cache/workspace fit in usable host RAM. It does not predict the exact layer split or speed. Disk swapping is not treated as sufficient memory. MoE models use all stored weights, not just active parameters. Models without cache metadata return an unavailable estimate.
 
 **No matching measured benchmarks are bundled.** When bandwidth is documented, dense models that fit entirely in their execution memory may show a theoretical bandwidth ceiling: bandwidth bytes/second divided by weight bytes. This is not expected tokens/second. Compute, cache traffic, context, runtime, thermals, concurrency, and prompt processing affect actual performance. MoE and offloaded results have no ceiling estimate. Measure real setups with [llama-bench](https://github.com/ggml-org/llama.cpp/blob/master/tools/llama-bench/README.md).
 
 ## Data and price limitations
 
-The catalogue contains 32 hardware configurations and 17 representative models from 1.5B to 671B, including five MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are Qwen’s published rounded values or, for newer entries, summed file bytes from the official or bartowski GGUF repositories. Llama 3.1 405B has no recorded Q4_K_M/Q8_0 artifact and uses the nominal-bit estimate; every result links the relevant sources and license. The calculator does not download models or test physical machines.
+The catalogue contains 32 hardware configurations and 17 representative models from 4B to 1T, including ten MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are summed file bytes from official, lmstudio-community, bartowski or unsloth GGUF repositories. GLM-5.3 has no published Q4_K_M build, so its 4-bit size uses the nominal-bit estimate. DeepSeek V4 and Kimi K3 are left out: their caches use new compressed or linear designs this calculator cannot estimate yet, or have no GGUF builds; every result links the relevant sources and license. The calculator does not download models or test physical machines.
 
 Reference prices distinguish historical MSRP, announced MSRP, and illustrative planning budgets. GPU desktop budgets include both a GPU and a host-machine allowance; those are examples, not current retailer quotes. Generic CPU-only and used-system prices are also examples. Historical Mac configurations may no longer be orderable. Sources are dated; availability and prices can change. Tax, shipping, electricity, training, and recurring costs are excluded.
 
@@ -108,7 +110,7 @@ MLX-LM is documented as an alternative for Apple silicon. Its checkpoint sizes d
 Edit `dist/catalogue.js`:
 
 1. Add a hardware record with a unique ID, memory topology, capacities in bytes, documented platform, runtime IDs, complete-system price or `null`, currency, price basis, condition, availability, source URLs, and verification date. Never add shared RAM to itself or treat GPU price as a full PC price.
-2. Add a model record with its architecture metadata (`cacheArchitecture: 'gqa'` with KV heads and head dimension, or `'mla'` with `kvLoraRank` and `ropeHeadDim`), total parameters, optional active MoE parameters, context limit, supported quantization artifacts, sources, and license. Record exact artifact bytes when available; otherwise mark published rounded values with `rounded: true`. `bytes: null` invokes the documented nominal-bit estimate with 10% overhead.
+2. Add a model record with its cache layer groups (built with the `gqa`, `mla` and `deltaNet` helpers from the model’s `config.json`), total parameters, optional active MoE parameters, context limit, supported quantization artifacts, sources, and license. Record summed GGUF file bytes for one build per quantization. `bytes: null` invokes the documented nominal-bit estimate with 10% overhead.
 3. Add measured benchmarks only when the hardware/model/quantization/context/runtime/version and test conditions match. The `benchmarks` array documents the required shape through its consumer in `dist/calculator.js` and tests.
 4. Run `npm test`, inspect both calculator modes, and check the affected result’s source links.
 

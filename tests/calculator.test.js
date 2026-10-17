@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { calculate, validateHardware, rankHardware } from '../dist/calculator.js';
 const G = 1024 ** 3;
 const hw = { id: 'pc', platform: 'cpu', topology: 'cpu', ramBytes: 16 * G, vramBytes: 0, bandwidthGBs: 100, runtimeIds: ['llama'], price: 100, currency: 'USD' };
-const model = { id: 'm', parameters: 2e9, layers: 2, kvHeads: 2, headDim: 64, maxContext: 32768, cacheArchitecture: 'gqa', runtimeIds: ['llama'], weightsByBits: { 4: { bytes: 2 * G }, 8: { bytes: 4 * G } } };
+const model = { id: 'm', parameters: 2e9, cache: [{ layers: 2, perToken: 2 * 2 * 64 }], maxContext: 32768, runtimeIds: ['llama'], weightsByBits: { 4: { bytes: 2 * G }, 8: { bytes: 4 * G } } };
 const rt = [{ id: 'llama', platforms: ['cpu', 'cuda'], partialOffload: true }];
 const settings = { bits: 4, context: 4096 };
 const calc = (h = hw, m = model, s = settings, r = rt, b = []) => calculate(h, m, s, r, b);
@@ -30,7 +30,7 @@ test('unified memory cannot be added to itself or augmented by a VRAM field', ()
   assert.equal(r.availableBytes, 12 * G);
 });
 test('10% of available memory is comfortable, zero remaining is tight', () => {
-  const m = { ...model, layers: 1, kvHeads: 1, headDim: 1, weightsByBits: { 4: { bytes: 8 * G - 4 } } };
+  const m = { ...model, cache: [{ layers: 1, perToken: 2 }], weightsByBits: { 4: { bytes: 8 * G - 4 } } };
   const exact = calc({ ...hw, ramBytes: 13 * G }, m, { bits: 4, context: 1 });
   assert.equal(exact.availableBytes, 9 * G);
   assert.equal(exact.remainingBytes, 0);
@@ -58,7 +58,7 @@ test('graphics allocation cap limits shared memory without double subtraction', 
 });
 test('unknown runtime or cache architecture gives an unavailable result', () => {
   assert.equal(calc(hw, model, settings, []).status, 'unavailable');
-  assert.equal(calc(hw, { ...model, cacheArchitecture: 'sliding' }).status, 'unavailable');
+  assert.equal(calc(hw, { ...model, cache: [] }).status, 'unavailable');
   assert.equal(calc(hw, model, settings, [{ ...rt[0], platforms: ['mac'] }]).status, 'unavailable');
 });
 test('invalid inputs never escape as NaN results', () => {
@@ -100,8 +100,9 @@ test('quantized KV cache shrinks cache; invalid precision rejected', () => {
   assert.equal(calc(hw, model, { ...settings, cacheBits: 5 }).status, 'unavailable');
 });
 
-test('MLA cache stores latent + RoPE key per layer; missing MLA metadata is rejected', () => {
-  const mla = { ...model, cacheArchitecture: 'mla', kvLoraRank: 512, ropeHeadDim: 64 };
-  assert.equal(calc(hw, mla).cacheBytes, 2 * 576 * 4096 * 2);
-  assert.equal(calc(hw, { ...mla, kvLoraRank: undefined }).status, 'unavailable');
+test('sliding-window layers stop at the window; linear-attention state is fixed and unquantized', () => {
+  const hybrid = { ...model, cache: [{ layers: 2, perToken: 256 }, { layers: 4, perToken: 256, window: 1024 }], stateBytes: 1000 };
+  assert.equal(calc(hw, hybrid).cacheBytes, (2 * 4096 + 4 * 1024) * 256 * 2 + 1000);
+  assert.equal(calc(hw, hybrid, { ...settings, cacheBits: 8 }).cacheBytes, (2 * 4096 + 4 * 1024) * 256 * 34 / 32 + 1000);
+  assert.equal(calc(hw, { ...hybrid, cache: [{ layers: 2, perToken: 256, window: 0 }] }).status, 'unavailable');
 });

@@ -55,9 +55,8 @@ test('hardware covers premium through minimum viable without pretending a GPU is
 
 test('model cache metadata and quantization sources are usable', () => {
   for (const m of models) {
-    assert.ok(m.parameters > 0 && m.layers > 0, m.id);
-    if (m.cacheArchitecture === 'gqa') assert.ok(m.kvHeads > 0 && m.headDim > 0, m.id);
-    else assert.ok(m.cacheArchitecture === 'mla' && m.kvLoraRank > 0 && m.ropeHeadDim > 0, m.id);
+    assert.ok(m.parameters > 0 && m.cache.length > 0, m.id);
+    assert.ok(m.cache.every(g => g.layers > 0 && g.perToken > 0), m.id);
     assert.ok(m.maxContext >= 4096);
     for (const bits of [4, 8]) {
       const weight = m.weightsByBits[bits];
@@ -68,16 +67,22 @@ test('model cache metadata and quantization sources are usable', () => {
   assert.ok(models.some(m => m.activeParameters && m.parameters > m.activeParameters));
 });
 
-test('big models reach the largest presets: 235B and DeepSeek R1 Q4 fit 512 GiB, Q8s do not, 405B is estimated', () => {
+test('frontier models reach the largest presets: 397B and DeepSeek V3.2 Q4 fit 512 GiB, Kimi K2 does not', () => {
   const studio = hardware.find(h => h.id === 'studio-ultra-512');
   const run = (id, bits) => calculate(studio, models.find(m => m.id === id), { bits, context: 32768 }, runtimes);
-  assert.equal(run('qwen235', 4).status, 'comfortable');
-  assert.equal(run('qwen480', 4).status, 'comfortable');
-  assert.equal(run('qwen480', 8).status, 'insufficient');
-  const r1 = run('ds-r1', 4);
-  assert.equal(r1.status, 'tight');
-  assert.equal(r1.cacheBytes, 61 * 576 * 32768 * 2);
-  assert.equal(run('ds-r1', 8).status, 'insufficient');
-  const llama405 = run('llama405', 4);
-  assert.ok(llama405.weightsEstimated && llama405.weightsBytes > 200e9);
+  assert.equal(run('qwen35-397b', 4).status, 'comfortable');
+  const ds = run('dsv32', 4);
+  assert.equal(ds.status, 'tight');
+  assert.equal(ds.cacheBytes, 61 * (576 + 128) * 32768 * 2);
+  assert.equal(run('dsv32', 8).status, 'insufficient');
+  assert.equal(run('kimi-k2-thinking', 4).status, 'insufficient');
+  assert.ok(run('glm53', 4).weightsEstimated);
+});
+
+test('hybrid and sliding-window models keep long-context caches small', () => {
+  const at = (id, context) => calculate(hardware.find(h => h.id === 'studio-ultra-512'), models.find(m => m.id === id), { bits: 4, context }, runtimes).cacheBytes;
+  // Gemma 4 sliding layers stop at 1,024 tokens; only the 10 global layers grow.
+  assert.equal(at('gemma4-31b', 131072) - at('gemma4-31b', 65536), 10 * 2 * 4 * 512 * 65536 * 2);
+  // Qwen3.8-27B: only 16 of 64 layers keep a KV cache, plus fixed DeltaNet state.
+  assert.ok(at('qwen38-27b', 131072) < 10 * GiB);
 });
