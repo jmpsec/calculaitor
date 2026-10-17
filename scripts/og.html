@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Source for dist/og.png. Regenerate with any Chromium:
+     chrome --headless --screenshot=dist/og.png --window-size=1200,630 --hide-scrollbars scripts/og.html -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{width:1200px;height:630px;background:#f7f8f5;color:#212e29;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:64px 72px;display:flex;flex-direction:column;overflow:hidden}
+  .brand{display:flex;align-items:center;gap:18px;font-size:40px;font-weight:750;letter-spacing:-1.5px}
+  .brand img{width:64px;height:64px}
+  .brand b{color:#2e604c}
+  .eyebrow{font:600 18px ui-monospace,SFMono-Regular,monospace;letter-spacing:3px;color:#2e604c;margin:58px 0 18px}
+  h1{font-size:84px;line-height:1.02;letter-spacing:-3.5px;font-weight:650}
+  h1 span{color:#2e604c}
+  .row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;gap:40px}
+  .stats{font-size:24px;color:#67736b;line-height:1.5}
+  .stats strong{color:#212e29}
+  .card{background:#eaf0e7;border:1px solid #dce6d8;border-radius:16px;padding:22px 26px;width:390px}
+  .labels{display:flex;justify-content:space-between;font-size:17px;color:#65755e;margin-bottom:12px}
+  .labels b{color:#364d39;font-weight:600}
+  .bar{display:flex;gap:4px;height:18px}
+  .bar span{border-radius:3px;background:#4d7053;flex:6}
+  .bar span:nth-child(2){background:#96ac85;flex:2}
+  .bar span:nth-child(3){background:#c0cfb2;flex:1}
+  .bar span:nth-child(4){background:#d7e1cb;flex:2}
+</style>
+</head>
+<body>
+  <div class="brand"><img src="../dist/favicon.svg" alt=""><span>calcul<b>ai</b>tor</span></div>
+  <p class="eyebrow">LOCAL AI HARDWARE PLANNER</p>
+  <h1>Big models.<br><span>Right-sized hardware.</span></h1>
+  <div class="row">
+    <p class="stats"><strong>Will it fit?</strong> Memory, context and budget for<br>Qwen, Llama, Mistral &amp; DeepSeek · 1.5B to 671B</p>
+    <div class="card">
+      <div class="labels"><span><b>Weights</b></span><span>+ <b>Cache</b></span><span>+ <b>Runtime</b></span></div>
+      <div class="bar"><span></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+</body>
+</html>
