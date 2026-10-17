@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Find the right hardware for local AI. Compare memory fit, complete-system budgets, and software for running language models on your own machine.">
+  <meta name="theme-color" content="#f7f8f5">
+  <title>calculaitor — Find your model's next home</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%232a5948'/%3E%3Cpath d='M12 11v18h17v-5H17V11z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#calculator">Skip to calculator</a>
+  <header class="site-header wrap">
+    <a class="brand" href="./" aria-label="calculaitor home"><span class="brand-icon" aria-hidden="true">⌘</span> <span>calcul<strong class="brand-ai">ai</strong>tor</span><span class="brand-tag">HARDWARE PLANNER</span></a>
+    <nav aria-label="Main navigation"><a href="#calculator">Calculator</a><a href="#methodology">How it works <span aria-hidden="true">↗</span></a></nav>
+    <span class="private-note"><span class="dot"></span> No cloud required</span>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" aria-labelledby="title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="small-line"></span> YOUR MODELS. YOUR MACHINE.</p>
+        <h1 id="title">Big models.<br><span>Right-sized hardware.</span></h1>
+        <p class="intro">Find out what runs, what fits, and what it costs.<br class="desktop-break"> Make room for local AI, without the guesswork.</p>
+        <div class="hero-tags"><span>Apple silicon</span><span>NVIDIA GPUs</span><span>Unified-memory PCs</span><span>CPU only</span></div>
+      </div>
+      <aside class="hero-card" aria-label="How memory planning works">
+        <div class="hero-card-top"><span class="mono">A BETTER FIT STARTS HERE</span><span class="tiny-chip" aria-hidden="true">▦</span></div>
+        <div class="memory-equation"><span>Model<br><b>weights</b></span><i>+</i><span>Context<br><b>cache</b></span><i>+</i><span>Runtime<br><b>space</b></span></div>
+        <div class="sample-memory" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <p>There’s more to running a model<br>than its download size.</p>
+        <a href="#methodology">Understand the estimate <span aria-hidden="true">↗</span></a>
+      </aside>
+    </section>
+
+    <section id="calculator" class="calculator" aria-labelledby="calculator-title">
+      <div class="section-heading"><div><p class="eyebrow">01 / THE CALCULATOR</p><h2 id="calculator-title">Build your local setup</h2></div><span class="session-note"><span class="dot"></span> Calculated on your device</span></div>
+      <div class="calculator-layout">
+        <aside class="control-panel">
+          <div class="panel-label"><span>START HERE</span><span aria-hidden="true">↙</span></div>
+          <div class="mode-switch" role="group" aria-label="Calculator mode"><button id="mode-model" type="button" aria-pressed="true">What do I need?</button><button id="mode-hardware" type="button" aria-pressed="false">What can I run?</button></div>
+          <p id="mode-description" class="muted control-description">Pick a model. Find its next machine.</p>
+          <div class="field" id="hardware-field" hidden><label for="hardware-select">Your hardware</label><select id="hardware-select"></select></div>
+          <div class="field"><label for="model-select" id="model-label">Choose a model</label><select id="model-select"></select><p id="model-note" class="field-note"></p></div>
+          <div class="field"><label for="bits">Weight quantization <span class="help-tag" title="Fewer bits use less memory, with a possible reduction in output quality.">?</span></label><select id="bits"><option value="4">4-bit · Q4_K_M</option><option value="8">8-bit · Q8_0</option></select><p class="field-note">4-bit saves memory. 8-bit preserves more precision.</p></div>
+          <div class="field"><label for="context">Total context <span id="context-value" class="mono"></span></label><input id="context" type="number" value="4096" min="1" max="32768" step="1" inputmode="numeric" aria-describedby="context-help"><div class="context-shortcuts" role="group" aria-label="Context presets"><button type="button" data-context="4096">4K</button><button type="button" data-context="8192">8K</button><button type="button" data-context="16384">16K</button><button type="button" data-context="32768">32K</button></div><p id="context-help" class="field-note">Prompt + generated tokens · one user · FP16 cache</p></div>
+          <div id="custom-hardware" hidden>
+            <div class="divider"></div><h3>Custom hardware</h3>
+            <div class="field"><label for="custom-platform">Platform</label><select id="custom-platform"><option value="mac">Apple silicon · Metal</option><option value="cuda">NVIDIA GPU · CUDA</option><option value="spark">DGX Spark · GB10</option><option value="vulkan">Integrated GPU · Vulkan</option><option value="cpu">CPU only · x64 AVX2</option></select></div>
+            <div class="field"><label for="custom-ram">System RAM (GiB)</label><input id="custom-ram" type="number" min="1" step="1" value="32"></div>
+            <div class="field" id="custom-vram-field" hidden><label for="custom-vram">Dedicated VRAM (GiB)</label><input id="custom-vram" type="number" min="1" step="1" value="12"></div>
+            <div class="field"><label for="custom-bandwidth">Memory bandwidth (GB/s) <span class="optional">optional</span></label><input id="custom-bandwidth" type="number" min="0.1" step="any" placeholder="Unknown"></div>
+            <div class="field"><label for="custom-reserve">Reserved execution memory (GiB) <span class="optional">optional</span></label><input id="custom-reserve" type="number" min="0" step="any" placeholder="Automatic OS/runtime reserve"><p class="field-note">Overrides the OS reserve for the active memory pool.</p></div>
+            <div class="field"><label for="custom-price">Complete-system price</label><input id="custom-price" type="number" min="0" step="any" placeholder="Unknown"></div>
+          </div>
+          <div class="divider"></div>
+          <div class="field"><label for="currency">Budget currency</label><select id="currency"><option value="USD">USD · US dollar</option><option value="EUR">EUR · Euro</option><option value="GBP">GBP · British pound</option></select><p class="field-note">No currency conversion. Add your local quotes in a result’s details. Prices exclude tax & shipping.</p></div>
+          <label class="checkbox-label"><input type="checkbox" id="compatible-only"> Show compatible results only</label>
+          <button id="reset-prices" class="text-button" type="button">↺ Reset edited prices</button>
+          <p id="input-errors" class="input-errors" role="status"></p>
+          <p class="panel-footnote">A planning tool, not a benchmark.<br>All assumptions are yours to inspect.</p>
+        </aside>
+
+        <div class="results-panel">
+          <div id="overview" class="overview"></div>
+          <div class="results-heading"><div><h3 id="results-title">Hardware shortlist</h3><p id="result-summary" class="muted" aria-live="polite"></p></div><span id="sort-note" class="table-note">SORTED BY SYSTEM COST ↑</span></div>
+          <div id="results" class="table-scroll" tabindex="0" role="region" aria-label="Calculator results"></div>
+          <div class="results-footnote"><span aria-hidden="true">ⓘ</span><p>* Bandwidth ceiling, not expected speed. Fits in memory ≠ fast in practice. Prices marked as planning budgets are editable examples. Open any result for its assumptions, sources, and software.</p></div>
+          <noscript><p>This calculator needs JavaScript enabled. It runs entirely in your browser.</p></noscript>
+        </div>
+      </div>
+    </section>
+
+    <section id="comparison-section" class="comparison-section" aria-labelledby="comparison-title"><div class="section-heading"><div><p class="eyebrow">02 / SIDE BY SIDE</p><h2 id="comparison-title">A clearer comparison</h2></div><span class="table-note">UP TO 3 MACHINES</span></div><div id="comparison" class="comparison-empty"><span aria-hidden="true">⊞</span><h3>A little perspective helps.</h3><p>Use the + buttons in your results to compare machines<br>with the same model and settings.</p></div></section>
+
+    <section id="methodology" class="methodology" aria-labelledby="method-title"><div><p class="eyebrow">03 / NO BLACK BOX</p><h2 id="method-title">Know what’s<br>behind the numbers.</h2><p class="muted">Transparent assumptions. Traceable sources.<br>A useful starting point for your own testing.</p><span class="data-date">Catalogue checked 17 Oct 2026</span></div><div class="method-details">
+      <details open><summary>How do you calculate memory fit?</summary><p>Required memory = weights + FP16 key/value cache + runtime workspace. The cache uses each model’s layers, KV heads, and head dimension: 2 × layers × KV heads × head dimension × context × 2 bytes. Workspace is the larger of 1 GiB or 5% of weights.</p><p>CPU and unified-memory systems reserve the larger of 4 GiB or 15% of RAM for the OS. Dedicated GPUs reserve the larger of 1 GiB or 5% of VRAM. A comfortable fit leaves at least 10% of usable execution memory free. Shared memory is counted once. The Ryzen preset also respects its documented graphics allocation cap.</p><p>Artifact sizes are published, rounded decimal GB values, converted to GiB. If exact sizes are unavailable, the fallback uses parameters × bits ÷ 8 plus 10% quantization overhead. Near a boundary, verify with the actual artifact and runtime.</p></details>
+      <details><summary>What does the speed figure mean?</summary><p>No matching measured benchmarks are bundled in this first catalogue. Every result is explicitly unbenchmarked. For a dense model fully resident in memory, the optional bandwidth ceiling divides documented memory bandwidth by weight size. It is a theoretical bound, not expected tokens/second. Context/cache traffic and compute make actual decoding slower.</p><p>MoE and offloaded configurations get no bandwidth ceiling. Prompt processing and time to first token differ from generation speed. Runtime, quantization, context depth, thermals, and concurrent users all matter.</p><a href="https://github.com/ggml-org/llama.cpp/blob/master/tools/llama-bench/README.md" target="_blank" rel="noopener noreferrer">How to measure your own setup ↗</a></details>
+      <details><summary>Where do the prices and models come from?</summary><p>Hardware specifications come from manufacturers; model architecture and rounded GGUF sizes come from Qwen’s model repositories. The initial eight models are representative Qwen configurations, not a ranking of today’s best models. Every result links its sources and license.</p><p>Prices distinguish historical MSRP, announced MSRP, and illustrative system budgets. Used systems are examples, not listings. Reference configurations may no longer be orderable. USD reference prices are never automatically converted; other currencies need your quotes. No taxes, shipping, electricity, training, or recurring costs are included.</p></details>
+      <details><summary>Which software should I use?</summary><p>LM Studio offers a graphical interface. Ollama manages models and a local API. llama.cpp gives direct control over GGUF models and CPU/GPU offloading. Use platform-specific builds and match the exact quantization/context to the estimate.</p><p>Intel MacBook Pro presets use llama.cpp on CPU; integrated graphics and separate Radeon VRAM are excluded until GPU support is verified. Fanless MacBook Air models may throttle during sustained use.</p><p>On Apple silicon, MLX-LM is another option; MLX checkpoint sizes differ from GGUF, so these weight estimates do not transfer exactly. DGX Spark needs an ARM64 / Blackwell-compatible stack: follow NVIDIA’s specific recipes.</p><div class="runtime-links"><a href="https://lmstudio.ai/docs/app/system-requirements" target="_blank" rel="noopener noreferrer">LM Studio ↗</a><a href="https://docs.ollama.com/" target="_blank" rel="noopener noreferrer">Ollama ↗</a><a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener noreferrer">llama.cpp ↗</a><a href="https://github.com/ml-explore/mlx-lm" target="_blank" rel="noopener noreferrer">MLX-LM ↗</a></div></details>
+    </div></section>
+  </main>
+  <footer class="wrap"><span class="brand footer-brand" aria-label="calculaitor"><span>calcul<strong class="brand-ai">ai</strong>tor</span></span><p>Less guesswork. More local intelligence.</p><span>Built for your next machine.</span></footer>
+  <dialog id="detail-dialog" aria-labelledby="detail-title"><div class="dialog-top"><span class="eyebrow">CONFIGURATION DETAILS</span><button id="close-dialog" aria-label="Close details" type="button">×</button></div><div id="detail-content"></div></dialog>
+</body>
+</html>
