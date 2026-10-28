@@ -2,7 +2,7 @@ import { hardware, models, runtimes, benchmarks, GiB } from './catalogue.js';
 import { calculate, validateHardware, rankHardware } from './calculator.js';
 
 const $ = id => document.getElementById(id);
-const state = { mode: 'model', hardwareId: 'mini-pro-48', modelId: 'qwen38-27b', bits: 4, cacheBits: 16, context: 32768, currency: 'USD', customPriceCurrency: 'USD', overrides: new Map(), comparison: [], detail: null };
+const state = { mode: 'model', hardwareId: 'mini-pro-48', modelId: 'qwen38-27b', bits: 4, cacheBits: 16, context: 131072, currency: 'USD', customPriceCurrency: 'USD', overrides: new Map(), comparison: [], detail: null };
 const labels = { comfortable: 'Comfortable fit', tight: 'Tight fit', offload: 'CPU offload', insufficient: 'Doesn’t fit', unavailable: 'Unavailable' };
 const resident = result => ['comfortable', 'tight'].includes(result.status);
 const gib = bytes => `${(bytes / GiB).toLocaleString('en-US', { maximumFractionDigits: 1 })} GiB`;
@@ -192,7 +192,7 @@ function openDetails(hardwareId, modelId) {
   for (const [label, bytes] of [['Model weights', r.weightsBytes], ['Context cache', r.cacheBytes], ['Runtime workspace', r.workspaceBytes], ['Usable execution memory', r.availableBytes]]) {
     breakdown.append(el('div', {}, el('dt', {}, label), el('dd', {}, r.requiredBytes ? gib(bytes) : '—')));
   }
-  content.append(breakdown, el('p', {}, `Weights use ${r.weightsEstimated ? 'an estimate (parameters × bits ÷ 8 + 10%); no matching GGUF size is recorded' : 'the summed GGUF file size'}. Runtime workspace and OS reserves are planning allowances. Verify actual runtime allocation before purchasing.`), el('p', {}, `Model license: ${m.license}. Context limit: ${m.maxContext.toLocaleString()} tokens without extensions.`));
+  content.append(breakdown, el('p', {}, `Weights use ${r.weightsEstimated ? 'an estimate (parameters × bits ÷ 8 + 10%); no matching GGUF size is recorded' : 'the summed GGUF file size'}. Runtime workspace and OS reserves are planning allowances. Verify actual runtime allocation before purchasing.`), el('p', {}, `Model license: ${m.license}. ${m.nativeContext ? `Native context: ${m.nativeContext.toLocaleString()} tokens; up to ${m.maxContext.toLocaleString()} with YaRN rope scaling in a runtime that supports it.` : `Context limit: ${m.maxContext.toLocaleString()} tokens.`}`));
   if (m.activeParameters) content.append(el('p', {}, 'Mixture of experts: the entire stored model must fit; its active-parameter count does not determine storage memory.'));
   if (h.note) content.append(el('p', {}, h.note));
   content.append(el('h3', {}, 'Performance evidence'), el('p', {}, r.performance.benchmark ? `${r.performance.benchmark.tokensPerSecond} tokens/second measured. ${r.performance.benchmark.conditions}` : 'No matching measured benchmark is bundled. Memory fit alone does not establish responsiveness.'));

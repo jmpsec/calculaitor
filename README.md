@@ -25,7 +25,7 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 | A shortlist of machines | How up to three setups compare with the same model and settings |
 | Your own configuration or quote | How custom memory, reserves, bandwidth, and local pricing change the estimate |
 
-- Switch between 4-bit and 8-bit weights, choose FP16, 8-bit or 4-bit KV cache, and adjust total context length up to 1M tokens.
+- Switch between 4-bit and 8-bit weights, choose FP16, 8-bit or 4-bit KV cache, and adjust total context length up to 1M tokens (default 128K).
 - See separate allowances for model weights, context cache, runtime space, and the operating system.
 - Inspect compatible tools, model licenses, hardware references, and price assumptions in each result.
 - Calculate entirely in your browser, without analytics, API calls, or persistent storage. External references open only when you follow their links.

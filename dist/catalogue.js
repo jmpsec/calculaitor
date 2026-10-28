@@ -77,15 +77,16 @@ const unsloth = repo => `https://huggingface.co/unsloth/${repo}-GGUF`;
 const bartowski = repo => `https://huggingface.co/bartowski/${repo}-GGUF`;
 const K = 1024;
 
+// maxContext is the longest documented length; nativeContext marks models that reach it only with YaRN rope scaling.
 // Parameter counts are Hugging Face safetensors totals, so they include vision and multi-token-prediction weights.
 export const models = [
   model('gemma4-26b', 'gemma-4-26B-A4B-it', 25.81, [gqa(25, 8, 256, 1024), gqa(5, 2, 512)], 256 * K, 16.947541728, 27.321628544, { org: 'google', name: 'Gemma 4 26B-A4B', gguf: unsloth('gemma-4-26B-A4B-it'), activeParameters: 4e9, purpose: 'Fast multimodal MoE', license: 'Apache 2.0' }),
-  model('qwen38-27b', 'Qwen3.8-27B', 27.78, [gqa(16, 4, 256)], 256 * K, 16.810714336, 29.047084256, { gguf: lms('Qwen3.8-27B'), stateBytes: deltaNet(48, 16, 48), purpose: 'Latest dense Qwen', license: 'Apache 2.0' }),
+  model('qwen38-27b', 'Qwen3.8-27B', 27.78, [gqa(16, 4, 256)], 1_000_000, 16.810714336, 29.047084256, { nativeContext: 256 * K, gguf: lms('Qwen3.8-27B'), stateBytes: deltaNet(48, 16, 48), purpose: 'Latest dense Qwen', license: 'Apache 2.0' }),
   model('gemma4-31b', 'gemma-4-31B-it', 31.27, [gqa(50, 16, 256, 1024), gqa(10, 4, 512)], 256 * K, 18.32373344, 33.150364736, { org: 'google', name: 'Gemma 4 31B', gguf: unsloth('gemma-4-31B-it'), purpose: 'Largest dense Gemma', license: 'Apache 2.0' }),
   model('mistral-medium-35', 'Mistral-Medium-3.5-128B', 127.7, [gqa(88, 8, 128)], 256 * K, 78.409343008, 132.85442384, { org: 'mistralai', name: 'Mistral Medium 3.5 128B', gguf: bartowski('mistralai_Mistral-Medium-3.5-128B'), purpose: 'Large dense model', license: 'Modified MIT — revenue limits apply' }),
   // 125B core + 51B n-gram embedding + 4B MTP, 6B active (model card).
-  model('qwen38-flash-next', 'Qwen3.8-Flash-Next', 180, [gqa(12, 2, 256)], 256 * K, 119.15072224, 188.224949792, { gguf: lms('Qwen3.8-Flash-Next'), stateBytes: deltaNet(36, 16, 48), activeParameters: 6e9, purpose: 'Sparse hybrid MoE', license: 'Qwen Community License — check use terms' }),
-  model('qwen35-397b', 'Qwen3.5-397B-A17B', 403.4, [gqa(15, 2, 256)], 256 * K, 240.590681792, 421.507365024, { gguf: lms('Qwen3.5-397B-A17B'), stateBytes: deltaNet(45, 16, 64), activeParameters: 17e9, purpose: 'Flagship open Qwen', license: 'Apache 2.0' }),
+  model('qwen38-flash-next', 'Qwen3.8-Flash-Next', 180, [gqa(12, 2, 256)], 1_000_000, 119.15072224, 188.224949792, { nativeContext: 256 * K, gguf: lms('Qwen3.8-Flash-Next'), stateBytes: deltaNet(36, 16, 48), activeParameters: 6e9, purpose: 'Sparse hybrid MoE', license: 'Qwen Community License — check use terms' }),
+  model('qwen35-397b', 'Qwen3.5-397B-A17B', 403.4, [gqa(15, 2, 256)], 1_010_000, 240.590681792, 421.507365024, { nativeContext: 256 * K, gguf: lms('Qwen3.5-397B-A17B'), stateBytes: deltaNet(45, 16, 64), activeParameters: 17e9, purpose: 'Flagship open Qwen', license: 'Apache 2.0' }),
   // DeepSeek sparse attention adds a 128-dim indexer key per token on top of the MLA latent.
   model('dsv32', 'DeepSeek-V3.2', 685.4, [mla(61, 512, 64), { layers: 61, perToken: 128 }], 160 * K, 405.39802432, 713.286531616, { org: 'deepseek-ai', gguf: unsloth('DeepSeek-V3.2'), activeParameters: 37e9, purpose: 'Sparse-attention MoE', license: 'MIT' }),
   // No Q4_K_M GGUF is published; 4-bit uses the nominal estimate. 40B active is the GLM-5 family figure.

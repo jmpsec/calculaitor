@@ -86,3 +86,8 @@ test('hybrid and sliding-window models keep long-context caches small', () => {
   // Qwen3.8-27B: only 16 of 64 layers keep a KV cache, plus fixed DeltaNet state.
   assert.ok(at('qwen38-27b', 131072) < 10 * GiB);
 });
+
+test('models whose context passes the native length say so', () => {
+  for (const m of models.filter(m => m.nativeContext)) assert.ok(m.nativeContext < m.maxContext, m.id);
+  assert.ok(models.some(m => m.maxContext >= 1_000_000));
+});
