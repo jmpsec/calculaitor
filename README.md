@@ -12,7 +12,7 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 
 ![calculaitor showing model compatibility on a MacBook Pro with M4 Max](docs/images/calculaitor.png)
 
-**32 hardware configurations · 17 model presets · No account, backend, or build step**
+**33 hardware configurations · 9 model presets · No account, backend, or build step**
 
 [Quick start](#quick-start) · [Features](#features) · [Hardware and models](#hardware-and-models) · [How estimates work](#what-the-estimates-mean) · [Contributing data](#update-the-catalogue) · [Deploy](#deploy)
 
@@ -25,7 +25,7 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 | A shortlist of machines | How up to three setups compare with the same model and settings |
 | Your own configuration or quote | How custom memory, reserves, bandwidth, and local pricing change the estimate |
 
-- Switch between 4-bit and 8-bit weights, choose FP16, 8-bit or 4-bit KV cache, and adjust total context length.
+- Switch between 4-bit and 8-bit weights, choose FP16, 8-bit or 4-bit KV cache, and adjust total context length up to 1M tokens.
 - See separate allowances for model weights, context cache, runtime space, and the operating system.
 - Inspect compatible tools, model licenses, hardware references, and price assumptions in each result.
 - Calculate entirely in your browser, without analytics, API calls, or persistent storage. External references open only when you follow their links.
@@ -41,7 +41,7 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 | Dedicated NVIDIA GPUs | Complete desktop budgets with RTX 5090, RTX 4060 Ti, and used RTX 3060 |
 | Minimum viable setups | CPU-only PCs with 8 or 16 GiB RAM |
 
-The model catalogue covers current open-weight releases from 4B to 1T: Qwen3.5, 3.6 and 3.8 (including Qwen3.8-Flash-Next and Qwen3.5-397B-A17B), Gemma 4, gpt-oss, Ministral 3, Mistral Medium 3.5, DeepSeek-V3.2, GLM-5.3, and Kimi K2 Thinking. It is a representative planning sample; model quality and benchmark rankings are outside its scope.
+The model catalogue covers current large open-weight releases from 26B to 1T: Qwen3.8-27B, Qwen3.8-Flash-Next and Qwen3.5-397B-A17B, Gemma 4 (26B-A4B and 31B), Mistral Medium 3.5, DeepSeek-V3.2, GLM-5.3, and Kimi K2 Thinking. Small and older models are deliberately left out. It is a representative planning sample; model quality and benchmark rankings are outside its scope.
 
 Software guidance covers **llama.cpp**, **LM Studio**, and **Ollama**, with **MLX-LM** documented as an alternative format on Apple silicon. Each result narrows the guidance to its supported platform.
 
@@ -84,8 +84,8 @@ Dedicated GPU reserve = max(1 GiB, 5% of VRAM)
 
 Elements per token depend on the attention type:
 
-- **Grouped-query attention** (Ministral, Mistral Medium, full-attention layers elsewhere): 2 × KV heads × head dimension.
-- **Sliding window** (Gemma 4, gpt-oss): the same, but capped at the window (1,024 or 128 tokens). Only the global layers grow with context. Gemma 4’s global layers share K and V; both are still counted.
+- **Grouped-query attention** (Mistral Medium, and the full-attention layers elsewhere): 2 × KV heads × head dimension.
+- **Sliding window** (Gemma 4): the same, but capped at the 1,024-token window. Only the global layers grow with context. Gemma 4’s global layers share K and V; both are still counted.
 - **Hybrid linear attention** (Qwen3.5 and later): only one layer in four keeps a KV cache. Gated DeltaNet layers hold a fixed recurrent and convolution state.
 - **Multi-head latent attention** (DeepSeek, GLM, Kimi): KV LoRA rank + RoPE head dimension, the compressed latent llama.cpp caches. DeepSeek sparse attention adds a 128-element indexer key on its indexer layers.
 
@@ -97,7 +97,7 @@ Dedicated-GPU models first need to fit in VRAM. “CPU offload” requires a doc
 
 ## Data and price limitations
 
-The catalogue contains 32 hardware configurations and 17 representative models from 4B to 1T, including ten MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are summed file bytes from official, lmstudio-community, bartowski or unsloth GGUF repositories. GLM-5.3 has no published Q4_K_M build, so its 4-bit size uses the nominal-bit estimate. DeepSeek V4 and Kimi K3 are left out: their caches use new compressed or linear designs this calculator cannot estimate yet, or have no GGUF builds; every result links the relevant sources and license. The calculator does not download models or test physical machines.
+The catalogue contains 33 hardware configurations and 9 representative models from 26B to 1T, including six MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are summed file bytes from official, lmstudio-community, bartowski or unsloth GGUF repositories. GLM-5.3 has no published Q4_K_M build, so its 4-bit size uses the nominal-bit estimate. DeepSeek V4 and Kimi K3 are left out: their caches use new compressed or linear designs this calculator cannot estimate yet, or have no GGUF builds; every result links the relevant sources and license. The calculator does not download models or test physical machines.
 
 Reference prices distinguish historical MSRP, announced MSRP, and illustrative planning budgets. GPU desktop budgets include both a GPU and a host-machine allowance; those are examples, not current retailer quotes. Generic CPU-only and used-system prices are also examples. Historical Mac configurations may no longer be orderable. Sources are dated; availability and prices can change. Tax, shipping, electricity, training, and recurring costs are excluded.
 

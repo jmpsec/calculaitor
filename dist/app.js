@@ -2,7 +2,7 @@ import { hardware, models, runtimes, benchmarks, GiB } from './catalogue.js';
 import { calculate, validateHardware, rankHardware } from './calculator.js';
 
 const $ = id => document.getElementById(id);
-const state = { mode: 'model', hardwareId: 'mini-pro-48', modelId: 'qwen38-27b', bits: 4, cacheBits: 16, context: 4096, currency: 'USD', customPriceCurrency: 'USD', overrides: new Map(), comparison: [], detail: null };
+const state = { mode: 'model', hardwareId: 'mini-pro-48', modelId: 'qwen38-27b', bits: 4, cacheBits: 16, context: 32768, currency: 'USD', customPriceCurrency: 'USD', overrides: new Map(), comparison: [], detail: null };
 const labels = { comfortable: 'Comfortable fit', tight: 'Tight fit', offload: 'CPU offload', insufficient: 'Doesn’t fit', unavailable: 'Unavailable' };
 const resident = result => ['comfortable', 'tight'].includes(result.status);
 const gib = bytes => `${(bytes / GiB).toLocaleString('en-US', { maximumFractionDigits: 1 })} GiB`;
