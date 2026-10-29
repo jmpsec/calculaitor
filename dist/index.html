@@ -31,13 +31,12 @@
   <header class="site-header wrap">
     <a class="brand" href="./" aria-label="calculaitor home"><img class="brand-icon" src="favicon.svg" width="36" height="36" alt=""> <span>calcul<strong class="brand-ai">ai</strong>tor</span><span class="brand-tag">HARDWARE PLANNER</span></a>
     <nav aria-label="Main navigation"><a href="#calculator">Calculator</a><a href="#methodology">How it works <span aria-hidden="true">↗</span></a></nav>
-    <span class="private-note"><span class="dot"></span> No cloud required</span>
+    <span class="private-note">No cloud required</span>
   </header>
 
   <main class="wrap">
     <section class="hero" aria-labelledby="title">
       <div class="hero-copy">
-        <p class="eyebrow"><span class="small-line"></span> YOUR MODELS. YOUR MACHINE.</p>
         <h1 id="title">Big models.<br><span>Right-sized hardware.</span></h1>
         <p class="intro">Find out what runs, what fits, and what it costs.<br class="desktop-break"> Make room for local AI, without the guesswork.</p>
         <div class="hero-tags"><span>Apple silicon</span><span>NVIDIA GPUs</span><span>Unified-memory PCs</span><span>CPU only</span></div>
@@ -52,7 +51,7 @@
     </section>
 
     <section id="calculator" class="calculator" aria-labelledby="calculator-title">
-      <div class="section-heading"><div><p class="eyebrow">01 / THE CALCULATOR</p><h2 id="calculator-title">Build your local setup</h2></div><span class="session-note"><span class="dot"></span> Calculated on your device</span></div>
+      <div class="section-heading"><div><h2 id="calculator-title">Build your local setup</h2></div><span class="session-note">Calculated on your device</span></div>
       <div class="calculator-layout">
         <aside class="control-panel">
           <div class="panel-label"><span>START HERE</span><span aria-hidden="true">↙</span></div>
@@ -90,9 +89,9 @@
       </div>
     </section>
 
-    <section id="comparison-section" class="comparison-section" aria-labelledby="comparison-title"><div class="section-heading"><div><p class="eyebrow">02 / SIDE BY SIDE</p><h2 id="comparison-title">A clearer comparison</h2></div><span class="table-note">UP TO 3 MACHINES</span></div><div id="comparison" class="comparison-empty"><span aria-hidden="true">⊞</span><h3>A little perspective helps.</h3><p>Use the + buttons in your results to compare machines<br>with the same model and settings.</p></div></section>
+    <section id="comparison-section" class="comparison-section" aria-labelledby="comparison-title"><div class="section-heading"><div><h2 id="comparison-title">A clearer comparison</h2></div><span class="table-note">UP TO 3 MACHINES</span></div><div id="comparison" class="comparison-empty"><span aria-hidden="true">⊞</span><h3>A little perspective helps.</h3><p>Use the + buttons in your results to compare machines<br>with the same model and settings.</p></div></section>
 
-    <section id="methodology" class="methodology" aria-labelledby="method-title"><div><p class="eyebrow">03 / NO BLACK BOX</p><h2 id="method-title">Know what’s<br>behind the numbers.</h2><p class="muted">Transparent assumptions. Traceable sources.<br>A useful starting point for your own testing.</p><span class="data-date">Catalogue checked 17 Oct 2026</span></div><div class="method-details">
+    <section id="methodology" class="methodology" aria-labelledby="method-title"><div><h2 id="method-title">Know what’s<br>behind the numbers.</h2><p class="muted">Transparent assumptions. Traceable sources.<br>A useful starting point for your own testing.</p><span class="data-date">Catalogue checked 17 Oct 2026</span></div><div class="method-details">
       <details open><summary>How do you calculate memory fit?</summary><p>Required memory = weights + key/value cache (FP16 by default; 8-/4-bit optional) + runtime workspace. The cache adds up each model’s layer groups: layers × elements per token × context × bytes per element (2 for FP16). Full attention stores 2 × KV heads × head dimension per token. Sliding-window layers (Gemma 4) stop growing at their window. Qwen’s hybrid models keep a KV cache on one layer in four, plus a small fixed linear-attention state. DeepSeek, GLM and Kimi cache a compressed MLA latent. Workspace is the larger of 1 GiB or 5% of weights.</p><p>CPU and unified-memory systems reserve the larger of 4 GiB or 15% of RAM for the OS. Dedicated GPUs reserve the larger of 1 GiB or 5% of VRAM. A comfortable fit leaves at least 10% of usable execution memory free. Shared memory is counted once. The Ryzen preset also respects its documented graphics allocation cap.</p><p>Artifact sizes are summed GGUF file bytes, converted to GiB. If no matching build is published, the fallback uses parameters × bits ÷ 8 plus 10% quantization overhead. Near a boundary, verify with the actual artifact and runtime.</p></details>
       <details><summary>What does the speed figure mean?</summary><p>No matching measured benchmarks are bundled in this first catalogue. Every result is explicitly unbenchmarked. For a dense model fully resident in memory, the optional bandwidth ceiling divides documented memory bandwidth by weight size. It is a theoretical bound, not expected tokens/second. Context/cache traffic and compute make actual decoding slower.</p><p>MoE and offloaded configurations get no bandwidth ceiling. Prompt processing and time to first token differ from generation speed. Runtime, quantization, context depth, thermals, and concurrent users all matter.</p><a href="https://github.com/ggml-org/llama.cpp/blob/master/tools/llama-bench/README.md" target="_blank" rel="noopener noreferrer">How to measure your own setup ↗</a></details>
       <details><summary>Where do the prices and models come from?</summary><p>Hardware specifications come from manufacturers; model architecture comes from each model’s Hugging Face config. GGUF sizes come from official, lmstudio-community, bartowski or unsloth builds. The models are representative Qwen, Gemma, Mistral, DeepSeek, GLM and Kimi releases, not a ranking of today’s best models. Every result links its sources and license.</p><p>Prices distinguish historical MSRP, announced MSRP, and illustrative system budgets. Used systems are examples, not listings. Reference configurations may no longer be orderable. USD reference prices are never automatically converted; other currencies need your quotes. No taxes, shipping, electricity, training, or recurring costs are included.</p></details>
