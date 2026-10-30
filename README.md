@@ -12,7 +12,7 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 
 ![calculaitor showing model compatibility on a MacBook Pro with M4 Max](docs/images/calculaitor.png)
 
-**37 hardware configurations · 9 model presets · No account, backend, or build step**
+**25 hardware configurations · 11 model presets · No account, backend, or build step**
 
 [Quick start](#quick-start) · [Features](#features) · [Hardware and models](#hardware-and-models) · [How estimates work](#what-the-estimates-mean) · [Contributing data](#update-the-catalogue) · [Deploy](#deploy)
 
@@ -34,12 +34,12 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 
 | Hardware family | Included examples |
 | --- | --- |
-| Apple desktops | Mac mini M4 / M4 Pro; Mac Studio M3 Ultra |
-| Apple silicon laptops | MacBook Air M1–M5; MacBook Pro with M1–M5 Pro and Max chips |
-| Intel laptops | 2019 16-inch and 2020 13-inch MacBook Pro, using conservative CPU-only estimates |
+| Apple desktops | Mac mini M4 Pro, M5 Pro and M6; Mac Studio M5 Ultra |
+| Apple silicon laptops | MacBook Air M4–M5; MacBook Pro with M3–M5 Pro and Max chips |
+| Intel laptop | 2019 16-inch MacBook Pro i9 with 64 GiB, using a conservative CPU-only estimate |
 | AI and unified-memory PCs | NVIDIA DGX Spark; Ryzen AI Max+ 395 |
-| Dedicated NVIDIA GPUs | Complete desktop budgets with RTX 5090, RTX 4060 Ti, and used RTX 3060 |
-| Minimum viable setups | CPU-only PCs with 8 or 16 GiB RAM |
+| Dedicated NVIDIA GPUs | Complete desktop budgets with RTX 5090, RTX 5070 Ti and RTX 4060 Ti |
+| Minimum viable setups | A CPU-only PC with 16 GiB RAM |
 
 The model catalogue covers current large open-weight releases from 26B to 1T: Qwen3.8-27B, Qwen3.8-Flash-Next and Qwen3.5-397B-A17B, MiniMax M3.1 Flash and M3, Gemma 4 (26B-A4B and 31B), Mistral Medium 3.5, DeepSeek-V3.2, GLM-5.3, and Kimi K2 Thinking. Small and older models are deliberately left out. It is a representative planning sample; model quality and benchmark rankings are outside its scope.
 
@@ -97,11 +97,11 @@ Dedicated-GPU models first need to fit in VRAM. “CPU offload” requires a doc
 
 ## Data and price limitations
 
-The catalogue contains 37 hardware configurations and 11 representative models from 26B to 1T, including eight MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are summed file bytes from official, lmstudio-community, bartowski or unsloth GGUF repositories. GLM-5.3 has no published Q4_K_M build, so its 4-bit size uses the nominal-bit estimate. DeepSeek V4 and Kimi K3 are left out: their caches use new compressed or linear designs this calculator cannot estimate yet, or have no GGUF builds; every result links the relevant sources and license. The calculator does not download models or test physical machines.
+The catalogue contains 25 hardware configurations and 11 representative models from 26B to 1T, including eight MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are summed file bytes from official, lmstudio-community, bartowski or unsloth GGUF repositories. GLM-5.3 has no published Q4_K_M build, so its 4-bit size uses the nominal-bit estimate. DeepSeek V4 and Kimi K3 are left out: their caches use new compressed or linear designs this calculator cannot estimate yet, or have no GGUF builds; every result links the relevant sources and license. The calculator does not download models or test physical machines.
 
 Reference prices distinguish historical MSRP, announced MSRP, and illustrative planning budgets. GPU desktop budgets include both a GPU and a host-machine allowance; those are examples, not current retailer quotes. Generic CPU-only and used-system prices are also examples. Historical Mac configurations may no longer be orderable. Sources are dated; availability and prices can change. Tax, shipping, electricity, training, and recurring costs are excluded.
 
-Laptop presets include MacBook Air and MacBook Pro across M1–M5, Pro and Max chips, plus 2019/2020 Intel MacBook Pros. Laptop prices are editable planning budgets, not market quotes. Intel presets use a conservative llama.cpp CPU path: integrated graphics and separate Radeon VRAM are excluded. Fanless Air models may throttle under sustained workloads.
+Laptop presets include MacBook Air and MacBook Pro across M2–M5, Pro and Max chips, plus a 2019 Intel MacBook Pro. Laptop prices are editable planning budgets, not market quotes. Fanless Air models may throttle under sustained workloads.
 
 MLX-LM is documented as an alternative for Apple silicon. Its checkpoint sizes differ from GGUF; do not treat these GGUF estimates as exact MLX allocations. DGX Spark guidance points to NVIDIA’s ARM64/Blackwell recipes. Custom configurations require verifying the actual driver, CPU instruction, and runtime support.
 
