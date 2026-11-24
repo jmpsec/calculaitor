@@ -41,7 +41,7 @@ calculaitor helps you explore those questions before buying hardware. Choose a m
 | Dedicated NVIDIA GPUs | Complete desktop budgets with RTX 5090, RTX 5070 Ti and RTX 4060 Ti |
 | Minimum viable setups | A CPU-only PC with 16 GiB RAM |
 
-The model catalogue covers current large open-weight releases from 26B to 1T: Qwen3.8-27B, Qwen3.8-Flash-Next and Qwen3.5-397B-A17B, MiniMax M3.1 Flash and M3, Gemma 4 (26B-A4B and 31B), Mistral Medium 3.5, DeepSeek-V3.2, GLM-5.3, and Kimi K2 Thinking. Small and older models are deliberately left out. It is a representative planning sample; model quality and benchmark rankings are outside its scope.
+The model catalogue covers current large open-weight releases from 26B to 1T: Qwen3.8-27B, Qwen3.8-Flash-Next and Qwen3.5-397B-A17B, Inkling 2 Mini and Small, MiniMax M3.1 Flash and M3, Ling 3.2-air and 3.1-flash, Gemma 4 (26B-A4B and 31B), Mistral Medium 3.5 and Large 4, DeepSeek-V3.2, GLM-5.3, and Kimi K2 Thinking. Small and older models are deliberately left out. It is a representative planning sample; model quality and benchmark rankings are outside its scope.
 
 Software guidance covers **llama.cpp**, **LM Studio**, and **Ollama**, with **MLX-LM** documented as an alternative format on Apple silicon. Each result narrows the guidance to its supported platform.
 
@@ -85,9 +85,9 @@ Dedicated GPU reserve = max(1 GiB, 5% of VRAM)
 Elements per token depend on the attention type:
 
 - **Grouped-query attention** (Mistral Medium, and the full-attention layers elsewhere): 2 × KV heads × head dimension.
-- **Sliding window** (Gemma 4): the same, but capped at the 1,024-token window. Only the global layers grow with context. Gemma 4’s global layers share K and V; both are still counted.
-- **Hybrid linear attention** (Qwen3.5 and later): only one layer in four keeps a KV cache. Gated DeltaNet layers hold a fixed recurrent and convolution state.
-- **Multi-head latent attention** (DeepSeek, GLM, Kimi): KV LoRA rank + RoPE head dimension, the compressed latent llama.cpp caches. DeepSeek sparse attention adds a 128-element indexer key on its indexer layers.
+- **Sliding window** (Gemma 4, Inkling 2): the same, but capped at the 1,024-token window. Only the global layers grow with context. Gemma 4’s global layers share K and V; both are still counted. Inkling 2 Mini’s looped core layers keep separate caches per pass, so its 24 layers hold 48 caches.
+- **Hybrid linear attention** (Qwen3.5 and later, Ling 3.x): only some layers keep a KV cache (one in four for Qwen, one in six or eight for Ling). Gated DeltaNet and Kimi Delta Attention layers hold a fixed recurrent and convolution state.
+- **Multi-head latent attention** (DeepSeek, GLM, Kimi, Ling, Mistral Large 4): KV LoRA rank + RoPE head dimension, the compressed latent llama.cpp caches. DeepSeek-style sparse attention adds a 128-element indexer key on its indexer layers. Mistral Large 4 counts only the 63 layers with their own latent and the 44 with their own indexer.
 
 A comfortable fit leaves at least 10% of usable execution memory free. A tight fit has less headroom. Unified RAM is counted once. The Ryzen AI Max preset also respects its documented 96 GiB graphics-allocation cap.
 
@@ -97,7 +97,7 @@ Dedicated-GPU models first need to fit in VRAM. “CPU offload” requires a doc
 
 ## Data and price limitations
 
-The catalogue contains 25 hardware configurations and 11 representative models from 26B to 1T, including eight MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are summed file bytes from official, lmstudio-community, bartowski or unsloth GGUF repositories. GLM-5.3 has no published Q4_K_M build, so its 4-bit size uses the nominal-bit estimate. DeepSeek V4 and Kimi K3 are left out: their caches use new compressed or linear designs this calculator cannot estimate yet, or have no GGUF builds; every result links the relevant sources and license. The calculator does not download models or test physical machines.
+The catalogue contains 25 hardware configurations and 16 representative models from 26B to 1T, including 13 MoE models. It is a compatibility sample, not a leaderboard or a claim to cover the latest model releases. Model metadata comes from each model’s Hugging Face config. GGUF sizes are summed file bytes from official, lmstudio-community, bartowski or unsloth GGUF repositories. GLM-5.3 and Mistral Large 4 have no published Q4_K_M build, so their 4-bit sizes use the nominal-bit estimate. DeepSeek V4 and Kimi K3 are left out: their caches use new compressed or linear designs this calculator cannot estimate yet, or have no GGUF builds. The original Inkling is left out until llama.cpp supports it; every result links the relevant sources and license. The calculator does not download models or test physical machines.
 
 Reference prices distinguish historical MSRP, announced MSRP, and illustrative planning budgets. GPU desktop budgets include both a GPU and a host-machine allowance; those are examples, not current retailer quotes. Generic CPU-only and used-system prices are also examples. Historical Mac configurations may no longer be orderable. Sources are dated; availability and prices can change. Tax, shipping, electricity, training, and recurring costs are excluded.
 
